@@ -3,8 +3,9 @@
 ## ✅ What's Been Configured
 
 ### 1. **Frontend Environment (.env.local)**
-- Created `.env.local` with `VITE_API_URL=http://localhost:5001`
+- Created `.env.local` with `VITE_API_URL=http://localhost:5001/api`
 - This tells the frontend where to find the backend API
+
 
 ### 2. **Frontend API Configuration**
 - The frontend already has axios interceptors set up
@@ -66,10 +67,11 @@ Access:
 ## 🔌 API Endpoints to Test
 
 Once frontend is running, it should connect to backend at:
-- **Base URL**: http://localhost:5001
+- **Base URL**: http://localhost:5001/api
 - **Health Check**: http://localhost:5001/api/health
-- **Login**: POST http://localhost:5001/auth/login
-- **Register**: POST http://localhost:5001/auth/register
+- **Login**: POST http://localhost:5001/api/auth/login
+- **Register**: POST http://localhost:5001/api/auth/register
+
 
 ---
 
