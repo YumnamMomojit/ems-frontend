@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getEmployeeSalary } from "~/services/employee.api"; // API function exists
-import { Download, DollarSign, Calendar, TrendingUp, TrendingDown, CreditCard } from "lucide-react";
+import { Download, DollarSign, Calendar, TrendingUp, TrendingDown, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "react-toastify";
 import { useOrganization } from "~/hooks/OrganizationContext";
@@ -9,6 +9,7 @@ import { useOrganization } from "~/hooks/OrganizationContext";
 const Salary = () => {
     const { currencySymbol } = useOrganization();
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [expandedRow, setExpandedRow] = useState(null);
     // const [selectedMonth, setSelectedMonth] = useState(null); // For detail view if needed
 
     const { data: salaryData, isLoading, isError } = useQuery({
@@ -125,20 +126,22 @@ const Salary = () => {
                                 <th className="px-6 py-4">Net Salary</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Payslip</th>
+                                <th className="px-6 py-4 text-center"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {salaryData && salaryData.length > 0 ? (
                                 salaryData.map((salary) => (
-                                    <tr key={salary.id} className="hover:bg-muted/50 transition">
+                                    <React.Fragment key={salary.id}>
+                                    <tr className="hover:bg-muted/50 transition">
                                         <td className="px-6 py-4 font-medium text-foreground">
                                             {months[salary.month - 1]} {salary.year}
                                         </td>
-                                        <td className="px-6 py-4">{currencySymbol}{salary.basicPay.toLocaleString()}</td>
-                                        <td className="px-6 py-4">{currencySymbol}{(salary.netPay - salary.basicPay + salary.deductions).toLocaleString()}</td>
-                                        <td className="px-6 py-4 text-red-500">-{currencySymbol}{salary.deductions.toLocaleString()}</td>
+                                        <td className="px-6 py-4">{currencySymbol}{salary.basicPay?.toLocaleString() || salary.earnings?.basicPay?.toLocaleString() || '0'}</td>
+                                        <td className="px-6 py-4">{currencySymbol}{((salary.earnings?.hra || 0) + (salary.earnings?.conveyance || 0) + (salary.earnings?.specialAllowance || 0) + (salary.earnings?.overtimePay || 0)).toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-red-500">-{currencySymbol}{salary.totalDeductions?.toLocaleString() || salary.deductions?.toLocaleString() || '0'}</td>
                                         <td className="px-6 py-4 font-bold text-foreground">
-                                            {currencySymbol}{salary.netPay.toLocaleString()}
+                                            {currencySymbol}{salary.netPayable?.toLocaleString() || salary.netPay?.toLocaleString() || '0'}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(salary.status)}`}>
@@ -157,11 +160,61 @@ const Salary = () => {
                                                 <span className="text-muted-foreground text-xs">Unavailable</span>
                                             )}
                                         </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button
+                                                onClick={() => setExpandedRow(expandedRow === salary.id ? null : salary.id)}
+                                                className="p-1 hover:bg-muted rounded transition"
+                                            >
+                                                {expandedRow === salary.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                            </button>
+                                        </td>
                                     </tr>
+                                    {expandedRow === salary.id && salary.deductionBreakdown && (
+                                        <tr>
+                                            <td colSpan="9" className="px-6 py-4 bg-muted/30">
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                    <div>
+                                                        <h4 className="text-xs font-semibold text-muted-foreground mb-2">STATUTORY</h4>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between"><span>PF:</span><span className="font-medium">{currencySymbol}{salary.deductionBreakdown.pf?.toFixed(2)}</span></div>
+                                                            <div className="flex justify-between"><span>ESI:</span><span className="font-medium">{currencySymbol}{salary.deductionBreakdown.esi?.toFixed(2)}</span></div>
+                                                            <div className="flex justify-between"><span>PT:</span><span className="font-medium">{currencySymbol}{salary.deductionBreakdown.pt?.toFixed(2)}</span></div>
+                                                            <div className="flex justify-between"><span>TDS:</span><span className="font-medium">{currencySymbol}{salary.deductionBreakdown.tds?.toFixed(2)}</span></div>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xs font-semibold text-muted-foreground mb-2">PENALTIES</h4>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between"><span>Late Days:</span><span className="font-medium">{salary.lateDays || 0}</span></div>
+                                                            <div className="flex justify-between"><span>Late Deduction:</span><span className="font-medium text-red-500">-{currencySymbol}{salary.deductionBreakdown.lateDeduction?.toFixed(2)}</span></div>
+                                                            <div className="flex justify-between"><span>Leave Deduction:</span><span className="font-medium text-red-500">-{currencySymbol}{salary.deductionBreakdown.leaveDeduction?.toFixed(2)}</span></div>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xs font-semibold text-muted-foreground mb-2">LOANS & ADVANCES</h4>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between"><span>Advance:</span><span className="font-medium text-red-500">-{currencySymbol}{salary.deductionBreakdown.advanceDeduction?.toFixed(2)}</span></div>
+                                                            <div className="flex justify-between"><span>Loan EMI:</span><span className="font-medium text-red-500">-{currencySymbol}{salary.deductionBreakdown.loanDeduction?.toFixed(2)}</span></div>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xs font-semibold text-muted-foreground mb-2">SUMMARY</h4>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between"><span>Working Days:</span><span className="font-medium">{salary.workingDays || 0}</span></div>
+                                                            <div className="flex justify-between"><span>Present:</span><span className="font-medium">{salary.presentDays || 0}</span></div>
+                                                            <div className="flex justify-between"><span>Late:</span><span className="font-medium">{salary.lateDays || 0}</span></div>
+                                                            <div className="flex justify-between font-semibold"><span>Total Deductions:</span><span className="text-red-500">-{currencySymbol}{salary.totalDeductions?.toFixed(2)}</span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    </React.Fragment>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-8 text-center text-muted-foreground">
+                                    <td colSpan="8" className="px-6 py-8 text-center text-muted-foreground">
                                         No salary records found for {selectedYear}.
                                     </td>
                                 </tr>

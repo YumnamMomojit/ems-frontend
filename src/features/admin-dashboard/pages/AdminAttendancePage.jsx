@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Filter,
   RefreshCcw,
+  Image as ImageIcon,
+  X,
 } from "lucide-react";
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays } from "date-fns";
 import KpiCard from "../../admin-dashboard/components/cards/KpiCard";
@@ -33,6 +35,7 @@ import { cn } from "~/utils/utils"; // Assuming cn utility for classNames exists
 
 const AdminAttendancePage = () => {
   const { user } = useAuth();
+  const [selectedSelfie, setSelectedSelfie] = useState(null);
 
   // State for filters
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("all");
@@ -357,6 +360,12 @@ const AdminAttendancePage = () => {
                   >
                     Status
                   </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                  >
+                    Selfie
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-card divide-y divide-border">
@@ -386,6 +395,19 @@ const AdminAttendancePage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {record.status || "N/A"}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {record.selfieUrl ? (
+                        <button
+                          onClick={() => setSelectedSelfie(record.selfieUrl)}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition"
+                        >
+                          <ImageIcon className="w-4 h-4" />
+                          <span className="text-xs">View</span>
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -393,6 +415,28 @@ const AdminAttendancePage = () => {
           </div>
         )}
       </div>
+
+      {/* Selfie Preview Modal */}
+      {selectedSelfie && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedSelfie(null)}>
+          <div className="relative max-w-2xl w-full bg-card rounded-xl shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setSelectedSelfie(null)}
+              className="absolute top-4 right-4 p-2 bg-muted hover:bg-muted/80 rounded-full transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-semibold text-foreground mb-4">Attendance Selfie</h3>
+            <div className="rounded-lg overflow-hidden bg-muted">
+              <img
+                src={selectedSelfie}
+                alt="Attendance Selfie"
+                className="w-full h-auto object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
